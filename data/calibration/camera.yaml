@@ -1,0 +1,23 @@
+camera_name: Logitech Integrated Webcam (ThinkPad T490s)
+image_width: 1280
+image_height: 720
+fps: 30
+
+# Approximated camera intrinsics (NOT calibrated!)
+camera_matrix:
+  - [900.0, 0.0, 640.0]
+  - [0.0, 900.0, 360.0]
+  - [0.0, 0.0, 1.0]
+
+# Assume no lens distortion for initial testing
+dist_coeffs:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+
+calibration:
+  calibrated: false
+  note: "Initial approximate intrinsics for development only"
+
