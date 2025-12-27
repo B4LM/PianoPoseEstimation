@@ -1,0 +1,10 @@
+apriltags:
+  family: tag36h11
+
+  piano:
+    id: 24
+    size: 0.04   # Meter
+
+  hand:
+    id: 26
+    size: 0.04 # Meter
