@@ -1,19 +1,34 @@
 import cv2
+from markers.apriltag_detector import AprilTagDetector
+
+def draw_tag(frame, detection):
+    corners = detection.corners.astype(int)
+    for i in range(4):
+        p1 = tuple(corners[i])
+        p2 = tuple(corners[(i + 1) % 4])
+        cv2.line(frame, p1, p2, (0, 255, 0), 2)
+
+    center = tuple(detection.center.astype(int))
+    cv2.circle(frame, center, 5, (0, 0, 255), -1)
+
 
 def main():
     cap = cv2.VideoCapture(0)
-
-    if not cap.isOpened():
-        raise RuntimeError("Could not open webcam")
+    detector = AprilTagDetector()
 
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        cv2.imshow("Webcam", frame)
+        detections = detector.detect(frame)
 
-        if cv2.waitKey(1) == 27:  # ESC
+        for det in detections:
+            draw_tag(frame, det)
+
+        cv2.imshow("AprilTag Detection", frame)
+
+        if cv2.waitKey(1) == 27:
             break
 
     cap.release()
