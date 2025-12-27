@@ -1,5 +1,14 @@
 import cv2
 from markers.apriltag_detector import AprilTagDetector
+from pathlib import Path
+from camera.calibration import load_camera_config
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+config_path = PROJECT_ROOT / "data" / "calibration" / "camera.yaml"
+
+config = load_camera_config(config_path)
+print("Using camera:", config["camera_name"])
 
 def draw_tag(frame, detection):
     corners = detection.corners.astype(int)
