@@ -1,23 +1,58 @@
-camera_name: Logitech Integrated Webcam (ThinkPad T490s)
-image_width: 1280
-image_height: 720
-fps: 30
-
-# Approximated camera intrinsics (NOT calibrated!)
-camera_matrix:
-  - [900.0, 0.0, 640.0]
-  - [0.0, 900.0, 360.0]
-  - [0.0, 0.0, 1.0]
-
-# Assume no lens distortion for initial testing
-dist_coeffs:
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-  - 0.0
-
-calibration:
-  calibrated: false
-  note: "Initial approximate intrinsics for development only"
-
+cameras:
+  iphone_camera:
+    calibration:
+      calibrated: true
+      calibration_date: '2026-01-08T15:41:46.116927'
+      calibration_images: null
+      mean_error: 0.39538299971289664
+      note: Initial approximate intrinsics - needs calibration
+    camera_matrix:
+    - - 432.3572454501199
+      - 0.0
+      - 376.922851804365
+    - - 0.0
+      - 443.48394392819284
+      - 277.91433090507707
+    - - 0.0
+      - 0.0
+      - 1.0
+    camera_name: iPhone Camera
+    device_id: 1
+    dist_coeffs:
+    - - -0.06626064212377492
+      - 0.22870166386209284
+      - 0.003838128510746223
+      - 0.04425220717311259
+      - -0.1906188354233037
+    fps: 30
+    image_height: 1080
+    image_width: 1920
+  laptop_webcam:
+    calibration:
+      calibrated: true
+      calibration_date: '2026-01-07T18:45:18.828758'
+      calibration_images: null
+      mean_error: 0.12321838628773353
+      note: Initial approximate intrinsics for development only
+    camera_matrix:
+    - - 618.3461202777708
+      - 0.0
+      - 376.1831807184801
+    - - 0.0
+      - 617.1231010896029
+      - 239.44150661475402
+    - - 0.0
+      - 0.0
+      - 1.0
+    camera_name: Logitech Integrated Webcam (ThinkPad T490s)
+    device_id: 0
+    dist_coeffs:
+    - - -0.19100751837039628
+      - 0.8315828487049434
+      - 0.007468132476087169
+      - 0.02681043831907037
+      - -1.3747696817577717
+    fps: 30
+    image_height: 720
+    image_width: 1280
+default_camera: laptop_webcam
