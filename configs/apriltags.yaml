@@ -4,9 +4,9 @@ apriltags:
   #piano
   piano:
     id: 26
-    size: 0.07   # Meter
+    size: 0.07   # meters
 
   #hand
   hand:
     id: 24
-    size: 0.04 # Meter
+    size: 0.04 # meters
