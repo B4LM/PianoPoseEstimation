@@ -1,2 +1,2 @@
 # Visualization module
-from .overlay import draw_axes, draw_plane, draw_vector, draw_line_3d,draw_fingertip_coords, draw_debug_wrist_to_middle_tip_distance,draw_hand_tag_in_piano_coords, draw_April_tag_box, draw_at_coordinate_system, draw_calibration_status, draw_tag_axes, draw_Key_press_Event
+from .overlay import draw_fingertip_coords,draw_April_tag_box, draw_calibration_status, draw_tag_axes, draw_Key_press_Event

@@ -1,9 +1,7 @@
-import cv2
 import yaml
 import numpy as np
 from datetime import datetime
-import os
-from pathlib import Path
+
 
 class CameraManager:
     def __init__(self, cfg_path = "camera.yaml"):

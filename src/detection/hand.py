@@ -14,14 +14,8 @@ class MediaPipeHandDetection:
                  min_detection_confidence: float = 0.7,
                  min_tracking_confidence: float = 0.5):
 
-        # Initialize MediaPipe modules - IMPORTANT: Use direct imports
-        # Don't store them as attributes, use them directly
         self.mp_hands = mp.solutions.hands
         self.mp_drawing = mp.solutions.drawing_utils
-
-        # Adjustable offset (you can tweak these!)
-        self.debug_offset_x = 0  # pixels
-        self.debug_offset_y = -50  # Move 50 pixels UP from wrist
 
         # Initialize the MediaPipe Hands solution
         self.hands = self.mp_hands.Hands(
@@ -32,15 +26,6 @@ class MediaPipeHandDetection:
             min_tracking_confidence=min_tracking_confidence
         )
 
-        # Define landmark names
-        self.LANDMARK_NAMES = [
-            'WRIST', 'THUMB_CMC', 'THUMB_MCP', 'THUMB_IP', 'THUMB_TIP',
-            'INDEX_FINGER_MCP', 'INDEX_FINGER_PIP', 'INDEX_FINGER_DIP', 'INDEX_FINGER_TIP',
-            'MIDDLE_FINGER_MCP', 'MIDDLE_FINGER_PIP', 'MIDDLE_FINGER_DIP', 'MIDDLE_FINGER_TIP',
-            'RING_FINGER_MCP', 'RING_FINGER_PIP', 'RING_FINGER_DIP', 'RING_FINGER_TIP',
-            'PINKY_MCP', 'PINKY_PIP', 'PINKY_DIP', 'PINKY_TIP'
-        ]
-
         self.FINGER_TIP_INDICES = {
             'THUMB': 4,
             'INDEX': 8,
@@ -49,7 +34,6 @@ class MediaPipeHandDetection:
             'PINKY': 20
         }
 
-        self.FINGER_NAMES = ['THUMB', 'INDEX', 'MIDDLE', 'RING', 'PINKY']
 
         self.FINGER_COLORS = {
             'THUMB': (0, 165, 255),  # Orange
@@ -161,9 +145,7 @@ class MediaPipeHandDetection:
     def draw_hand(self, image: np.ndarray, hand_data: Dict,
                   draw_landmarks: bool = True,
                   draw_finger_tips: bool = True,
-                  draw_bbox: bool = True,
-                  draw_debug_lines: bool = True,
-                  tag_offset: np.ndarray = None) -> np.ndarray:
+                  draw_bbox: bool = True) -> np.ndarray:
         '''
         Draw hand landmarks, finger tips, and bounding box on the image.
         :param image: BGR image
@@ -171,8 +153,6 @@ class MediaPipeHandDetection:
         :param draw_landmarks: Whether to draw landmarks and connections
         :param draw_finger_tips: Whether to draw finger tip circles
         :param draw_bbox: Whether to draw bounding box
-        :param draw_debug_lines: Whether to draw debug lines
-        :param tag_offset: Offset of the tag
         :return: Image with drawings
         '''
         if hand_data is None:
@@ -216,151 +196,4 @@ class MediaPipeHandDetection:
             wrist = hand_data['wrist_position'].astype(int)
             cv2.circle(output_image, tuple(wrist), 8, (255, 0, 255), -1)
 
-        ####
-        '''
-        if 'wrist_position' in hand_data:
-            wrist = hand_data['wrist_position'].astype(int)
-            cv2.circle(output_image, tuple(wrist), 8, (255, 0, 255), -1)
-            cv2.putText(output_image, "WRIST",
-                        (wrist[0] + 10, wrist[1] - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 1)
-
-        # Draw debug lines for tag offset
-        if draw_debug_lines and 'wrist_position' in hand_data:
-            wrist = hand_data['wrist_position'].astype(int)
-
-            # Default offset if none provided
-            if tag_offset is None:
-                # These are IN HAND COORDINATES (relative to hand orientation)
-                # [towards fingers, towards pinky side] in hand-width units
-                tag_offset = np.array([0.3, 0.0])  # 0.3 hand-width towards fingers
-
-            # Calculate hand orientation and scale
-            # Get middle finger base and tip for orientation
-            middle_mcp = hand_data['landmarks_pixel'][9][:2].astype(int)  # Middle finger MCP
-            middle_tip = hand_data['landmarks_pixel'][12][:2].astype(int)  # Middle finger tip
-
-            # Vector from wrist to middle finger MCP gives hand direction
-            wrist_to_middle = middle_mcp - wrist
-
-            # Calculate hand width (approximate)
-            pinky_mcp = hand_data['landmarks_pixel'][17][:2]  # Pinky MCP
-            index_mcp = hand_data['landmarks_pixel'][5][:2]  # Index MCP
-            hand_width_pixels = np.linalg.norm(pinky_mcp - index_mcp)
-
-            if hand_width_pixels > 0:
-                # Normalize the direction vector
-                hand_direction = wrist_to_middle / np.linalg.norm(wrist_to_middle)
-
-                # Perpendicular vector (90 degree rotation for side direction)
-                # In image coordinates, rotate 90 degrees clockwise for hand side
-                hand_side = np.array([hand_direction[1], -hand_direction[0]])
-
-                # Convert hand-relative offset to pixel offset
-                offset_pixels = (
-                        tag_offset[0] * hand_width_pixels * hand_direction +  # Towards fingers
-                        tag_offset[1] * hand_width_pixels * hand_side  # Towards pinky/thumb
-                )
-
-                # Calculate tag position
-                tag_pos = wrist + offset_pixels.astype(int)
-
-                # Draw hand orientation vectors (for debugging)
-                # Hand direction (red)
-                dir_end = wrist + (hand_direction * 50).astype(int)
-                cv2.arrowedLine(output_image, tuple(wrist), tuple(dir_end),
-                                (0, 0, 255), 2, tipLength=0.2)
-                cv2.putText(output_image, "Fingers",
-                            tuple(dir_end + np.array([5, 5])),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
-
-                # Hand side direction (green)
-                side_end = wrist + (hand_side * 50).astype(int)
-                cv2.arrowedLine(output_image, tuple(wrist), tuple(side_end),
-                                (0, 255, 0), 2, tipLength=0.2)
-                cv2.putText(output_image, "Thumb side",
-                            tuple(side_end + np.array([5, 5])),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
-
-                # Draw tag position
-                cv2.circle(output_image, tuple(tag_pos), 12, (0, 255, 255), -1)  # Yellow
-                cv2.circle(output_image, tuple(tag_pos), 12, (0, 0, 0), 2)  # Black border
-
-                cv2.putText(output_image, "TAG HERE",
-                            (tag_pos[0] + 15, tag_pos[1]),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-
-                # Draw line from wrist to tag
-                cv2.arrowedLine(output_image,
-                                tuple(wrist),
-                                tuple(tag_pos),
-                                (255, 255, 0),  # Cyan
-                                3,
-                                tipLength=0.15)
-
-                # Display offset values
-                offset_text = f"Offset: ({tag_offset[0]:.2f}, {tag_offset[1]:.2f}) hw"
-                cv2.putText(output_image, offset_text,
-                            (wrist[0] + 10, wrist[1] + 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 2)
-
-                # Display hand width
-                cv2.putText(output_image, f"Hand width: {hand_width_pixels:.0f} px",
-                            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-        ####
-        '''
         return output_image
-
-    def get_landmarks_3d_relative(self, hand_data: Dict, wrist_depth: float = None, hand_width: float = None) -> np.ndarray:
-        '''
-        Convert 2D landmarks to 3D relative coordinates.
-        :param hand_data: hand detection data
-        :param hand_width: distance between index and pinky knuckle, used for depth estimation, eather this or wrist_depth must be given
-        :param wrist_depth: distance between wrist and camera, eather this or hand_width must be given
-        :return: Nx3 array of landmarks in relative 3D coordinates
-        '''
-        if hand_data is None:
-            return None
-
-        landmarks_2d = hand_data['landmarks_normalized']
-        landmarks_3d = []
-
-        if hand_width is not None and wrist_depth is None:
-            #depth estimation through hand width
-            hand_width
-
-
-
-        landmarks_2d = hand_data['landmarks_normalized']
-        landmarks_3d = []
-
-        for landmark in landmarks_2d:
-            # x, y in normalized coordinates, z from MediaPipe + depth
-            x = landmark[0]  # Normalized [0, 1]
-            y = landmark[1]  # Normalized [0, 1]
-            z = depth + landmark[2] * 0.1  # Add MediaPipe's relative z scaled
-
-            landmarks_3d.append([x, y, z])
-
-        return np.array(landmarks_3d)
-
-    def estimate_hand_depth(self, hand_data: Dict, focal_length: float = 500) -> float:
-        '''
-        Estimate hand depth using hand size.
-        :param hand_data: hand detection data
-        :param focal_length: camera focal length in pixels
-        :return: estimated depth in meters
-        '''
-        if hand_data is None:
-            return None
-
-        # Average adult hand width ~ 0.08-0.1m
-        avg_hand_width = 0.085  # meters
-        bbox = hand_data['bbox']
-        hand_width_pixels = bbox['width']
-
-        # Depth = (focal_length * actual_size) / pixel_size
-        depth = (focal_length * avg_hand_width) / hand_width_pixels
-
-        return depth
-

@@ -73,9 +73,6 @@ class CameraCalibrator:
         :param image_size: image size, used in calibration
         :return: camera matrix, distortion coefficients, mean error
         """
-        #if len(self.imgpoints) < 5:
-            #print(f"Error: Need at least 5 images with detected corners to calibrate. Found {len(self.imgpoints)}")
-            #return None, None, None, None
 
         print(f"calibrating started!")
 
@@ -175,25 +172,22 @@ class hand_tag_landmark_calibration:
         }
         calibration_frames.append(frame_data)
 
-
-        # check if we have enough frames
         if len(calibration_frames) >= self.number_of_frames:
             cal_complete = True
             cal_inprogress = False
             print("Calibration complete!")
-            # Stack arrays for averaging
+
             t_TW_stack = np.stack([f['tag_translation'] for f in calibration_frames])
             wrist_stack = np.stack([f['wrist'] for f in calibration_frames])
             index_stack = np.stack([f['index'] for f in calibration_frames])
             pinky_stack = np.stack([f['pinky'] for f in calibration_frames])
 
-            # Compute averages
+
             t_TW_avg = np.mean(t_TW_stack, axis=0)
             wrist_avg = np.mean(wrist_stack, axis=0)
             index_avg = np.mean(index_stack, axis=0)
             pinky_avg = np.mean(pinky_stack, axis=0)
 
-            # rotations: pick the middle frame
             middle_index = len(calibration_frames) // 2
             R_TW_avg = calibration_frames[middle_index]['tag_rotation']
 
@@ -212,7 +206,7 @@ class hand_tag_landmark_calibration:
             Z = np.cross(X, Y)
             Z /= np.linalg.norm(Z)
 
-            R_HW = np.column_stack((X, Y, Z))  # hand frame rotation matrix
+            R_HW = np.column_stack((X, Y, Z))
             t_HT = R_HW.T @ (t_TW_avg - wrist_avg)
             R_HT = R_TW_avg.T @ R_HW
 

@@ -21,7 +21,6 @@ class AprilTagDetector:
 
     def estimate_pose(self, detection, tag_config):
         pose = None
-        #s = tag_size
         tags = {}
 
         for det in detection:
@@ -35,9 +34,6 @@ class AprilTagDetector:
                 tag_size = tag_config['piano']['size']
             else:
                 continue
-
-            #pose = corners
-            #tag_size = tag_config
 
             if self.K is not None and self.dist is not None:
                 try:
@@ -56,7 +52,6 @@ class AprilTagDetector:
                         self.dist,
                         flags=cv2.SOLVEPNP_IPPE_SQUARE
                     )
-                    #print(success, rvec, tvec)
 
                     if success:
                         R, _ =  cv2.Rodrigues(rvec)
