@@ -55,4 +55,4 @@ cameras:
     fps: 30
     image_height: 720
     image_width: 1280
-default_camera: laptop_webcam
+default_camera: iphone_camera

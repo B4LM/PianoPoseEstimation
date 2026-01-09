@@ -143,6 +143,81 @@ class CameraCalibrator:
         cv2.destroyAllWindows()
         return saved_images
 
+class hand_tag_landmark_calibration:
+    def __init__(self, number_of_frames: int=30):
+        self.number_of_frames = number_of_frames
+
+    def calibrate_hand(self, hand_data, hand_pose,calibration_frames):
+        cal_complete = False
+        cal_inprogress = True
+
+        t_HT = None
+        R_HT = None
+
+        frame_data = {
+            'tag_translation': np.array(hand_pose['translation']),  # 3-vector
+            'tag_rotation': np.array(hand_pose['rotation']),  # 3x3 matrix
+            'wrist': np.array([
+                hand_data['world_landmarks'][0].x,
+                hand_data['world_landmarks'][0].y,
+                hand_data['world_landmarks'][0].z
+            ]),
+            'index': np.array([
+                hand_data['world_landmarks'][5].x,
+                hand_data['world_landmarks'][5].y,
+                hand_data['world_landmarks'][5].z
+            ]),
+            'pinky': np.array([
+                hand_data['world_landmarks'][17].x,
+                hand_data['world_landmarks'][17].y,
+                hand_data['world_landmarks'][17].z
+            ])
+        }
+        calibration_frames.append(frame_data)
+
+
+        # check if we have enough frames
+        if len(calibration_frames) >= self.number_of_frames:
+            cal_complete = True
+            cal_inprogress = False
+            print("Calibration complete!")
+            # Stack arrays for averaging
+            t_TW_stack = np.stack([f['tag_translation'] for f in calibration_frames])
+            wrist_stack = np.stack([f['wrist'] for f in calibration_frames])
+            index_stack = np.stack([f['index'] for f in calibration_frames])
+            pinky_stack = np.stack([f['pinky'] for f in calibration_frames])
+
+            # Compute averages
+            t_TW_avg = np.mean(t_TW_stack, axis=0)
+            wrist_avg = np.mean(wrist_stack, axis=0)
+            index_avg = np.mean(index_stack, axis=0)
+            pinky_avg = np.mean(pinky_stack, axis=0)
+
+            # rotations: pick the middle frame
+            middle_index = len(calibration_frames) // 2
+            R_TW_avg = calibration_frames[middle_index]['tag_rotation']
+
+            print(f"t_TW_avg: {t_TW_avg}")
+            print(f"wrist_avg: {wrist_avg}")
+            print(f"index_avg: {index_avg}")
+            print(f"pinky_avg: {pinky_avg}")
+            print(f"R_TW_avg: {R_TW_avg}")
+
+            X = index_avg - wrist_avg
+            X /= np.linalg.norm(X)
+
+            Y = pinky_avg - wrist_avg
+            Y /= np.linalg.norm(Y)
+
+            Z = np.cross(X, Y)
+            Z /= np.linalg.norm(Z)
+
+            R_HW = np.column_stack((X, Y, Z))  # hand frame rotation matrix
+            t_HT = R_HW.T @ (t_TW_avg - wrist_avg)
+            R_HT = R_TW_avg.T @ R_HW
+
+        return cal_complete, cal_inprogress, t_HT, R_HT
+
 
 
 

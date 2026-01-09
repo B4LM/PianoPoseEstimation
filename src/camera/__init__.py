@@ -1,3 +1,3 @@
 # Camera module
-from .calibration import CameraCalibrator
+from .calibration import CameraCalibrator, hand_tag_landmark_calibration
 from .camera_manager import CameraManager
