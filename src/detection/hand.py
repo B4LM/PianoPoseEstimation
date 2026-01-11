@@ -1,14 +1,11 @@
 import cv2
 import numpy as np
 import mediapipe as mp
-from typing import List, Tuple, Optional, Dict
+from typing import Optional, Dict
 import time
 
-
+# MediaPipe Hand Detection Class
 class MediaPipeHandDetection:
-    '''
-    Class to handle hand detection and landmark extraction using MediaPipe.
-    '''
 
     def __init__(self,
                  min_detection_confidence: float = 0.7,
@@ -47,12 +44,9 @@ class MediaPipeHandDetection:
         self.last_detection_time = time.time()
         self.detection_timeout = 0.5  # seconds
 
+    # Detect hand in the image
     def detect(self, image: np.ndarray) -> Optional[Dict]:
-        '''
-        Detect one hand in the given image and return the results.
-        :param image: BGR image (OpenCV default format)
-        :return: MediaPipe results object or None if processing fails
-        '''
+
         if image is None or image.size == 0:
             return None
 
@@ -76,6 +70,7 @@ class MediaPipeHandDetection:
 
             world_landmarks = results.multi_hand_world_landmarks[0].landmark
 
+            # Convert normalized landmarks to pixel coordinates
             for landmark in hand_landmarks.landmark:
                 x_pixel = int(landmark.x * width)
                 y_pixel = int(landmark.y * height)
@@ -83,6 +78,7 @@ class MediaPipeHandDetection:
                 landmarks_pixel.append([x_pixel, y_pixel, landmark.z])
                 landmarks_normalized.append([landmark.x, landmark.y, landmark.z])
 
+            # Convert to numpy arrays for easier processing
             landmarks_pixel = np.array(landmarks_pixel)
             landmarks_normalized = np.array(landmarks_normalized)
 
@@ -97,6 +93,7 @@ class MediaPipeHandDetection:
 
             wrist_pos = landmarks_pixel[0][:2]
 
+            # Smooth wrist position
             if self.last_hand_position is None:
                 alpha = 1.0
                 wrist = alpha * wrist_pos
@@ -106,10 +103,12 @@ class MediaPipeHandDetection:
 
             self.last_hand_position = wrist
 
+            # Compute bounding box
             x_coords = landmarks_pixel[:, 0]
             y_coords = landmarks_pixel[:, 1]
             padding = 20
 
+            # Ensure bounding box is within image boundaries
             bbox = {
                 'x_min': max(0, int(x_coords.min() - padding)),
                 'y_min': max(0, int(y_coords.min() - padding)),
@@ -119,11 +118,12 @@ class MediaPipeHandDetection:
                 'height': int(y_coords.max() - y_coords.min() + 2 * padding)
             }
 
+            # Compute hand size (distance from wrist to middle fingertip)
             wrist_landmark = landmarks_pixel[0][:2]
             middle_tip = landmarks_pixel[12][:2]
             hand_size = np.linalg.norm(middle_tip - wrist_landmark)
 
-
+            # Compile hand data
             hand_data = {
                 'landmarks_pixel': landmarks_pixel,
                 'landmarks_normalized': landmarks_normalized,
@@ -142,24 +142,18 @@ class MediaPipeHandDetection:
             print(f"Hand detection failed: {e}")
             return None
 
+    # Draw hand landmarks, finger tips, and bounding box on the image
     def draw_hand(self, image: np.ndarray, hand_data: Dict,
                   draw_landmarks: bool = True,
                   draw_finger_tips: bool = True,
                   draw_bbox: bool = True) -> np.ndarray:
-        '''
-        Draw hand landmarks, finger tips, and bounding box on the image.
-        :param image: BGR image
-        :param hand_data: Dictionary with hand detection data
-        :param draw_landmarks: Whether to draw landmarks and connections
-        :param draw_finger_tips: Whether to draw finger tip circles
-        :param draw_bbox: Whether to draw bounding box
-        :return: Image with drawings
-        '''
+
         if hand_data is None:
             return image
 
         output_image = image.copy()
 
+        # Draw landmarks using MediaPipe drawing utilities
         if draw_landmarks and 'mp_landmarks' in hand_data:
             self.mp_drawing.draw_landmarks(
                 output_image,
@@ -169,6 +163,7 @@ class MediaPipeHandDetection:
                 self.mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=2)
             )
 
+        # Draw finger tips
         if draw_finger_tips and 'finger_tips' in hand_data:
             for finger_name, tip_info in hand_data['finger_tips'].items():
                 pos = tip_info['position'].astype(int)
@@ -182,6 +177,7 @@ class MediaPipeHandDetection:
                             (pos[0] - 5, pos[1] - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
+        # Draw bounding box
         if draw_bbox and 'bbox' in hand_data:
             bbox = hand_data['bbox']
             cv2.rectangle(
@@ -192,6 +188,7 @@ class MediaPipeHandDetection:
                 2
             )
 
+        # Draw wrist position
         if 'wrist_position' in hand_data:
             wrist = hand_data['wrist_position'].astype(int)
             cv2.circle(output_image, tuple(wrist), 8, (255, 0, 255), -1)

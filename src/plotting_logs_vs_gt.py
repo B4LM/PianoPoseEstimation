@@ -5,22 +5,28 @@ from scipy.interpolate import interp1d
 from pathlib import Path
 
 def load_data(est_path, gt_path):
-    est = pd.read_csv(est_path, sep=",")
 
+    # Load CSV files
+    est = pd.read_csv(est_path, sep=",")
     gt = pd.read_csv(gt_path, sep=";", decimal=",")
 
+    # Normalize column names
     est = normalize_columns(est)
     gt = normalize_columns(gt)
 
+    # Ensure required columns exist
     for col in ["time", "x-pos", "y-pos", "z-pos"]:
         est[col] = pd.to_numeric(est[col], errors="coerce")
         gt[col] = pd.to_numeric(gt[col], errors="coerce")
 
+    # Convert positions from meters to centimeters
     est[["x-pos", "y-pos", "z-pos"]] *= 100.0
 
     return est.sort_values("time"), gt.sort_values("time")
 
 def normalize_columns(df):
+
+    # Rename columns for consistency
     rename_map = {
         "finger": "finger_idx",
         "x": "x-pos",
@@ -33,6 +39,7 @@ def normalize_columns(df):
 
 def interpolate_gt(gt_df, target_times, axis):
 
+    # Create interpolation function
     interp_fn = interp1d(
         gt_df["time"],
         gt_df[axis],
@@ -44,6 +51,7 @@ def interpolate_gt(gt_df, target_times, axis):
 
 def apply_time_window(df, t_start=None, t_stop=None):
 
+    # Apply time window filtering
     if t_start is not None:
         df = df[df["time"] >= t_start]
     if t_stop is not None:
@@ -52,6 +60,8 @@ def apply_time_window(df, t_start=None, t_stop=None):
 
 
 def plot_all_axes(est, gt, test_name, t_start=None, t_stop=None):
+
+    # Plot estimated vs ground truth for all axes
     axes = ["x-pos", "y-pos", "z-pos"]
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
@@ -60,6 +70,7 @@ def plot_all_axes(est, gt, test_name, t_start=None, t_stop=None):
 
     fig, axs = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
 
+    # 2. Plotting Each Axis
     for i, axis in enumerate(axes):
         ax = axs[i]
         all_fingers = sorted(set(est_plot["finger_idx"].unique()))
@@ -86,17 +97,18 @@ def plot_all_axes(est, gt, test_name, t_start=None, t_stop=None):
                     ax.plot(gt_f["time"], gt_f[axis],
                             label=f"GT f{finger}", linestyle="--", color=color, zorder=5)
 
-        # 3. Legend at Bottom Right
+
         ax.legend(loc='lower right', ncol=2, fontsize=8, framealpha=0.9)
         ax.set_ylabel(f"{axis} [cm]")
         ax.grid(True, linestyle=':')
 
+    # Final Adjustments
     axs[-1].set_xlabel("Time [s]")
     fig.suptitle(test_name, fontsize=14)
     plt.tight_layout()
     plt.show()
 
-#=========================main=========================================
+#=========================main===============================
 
 project_root = Path(__file__).resolve().parents[1]
 recordings_dir = project_root / "recordings"

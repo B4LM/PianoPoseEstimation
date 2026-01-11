@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import yaml
 
+# AprilTag Detector Class
 class AprilTagDetector:
     def __init__(self, camera_matrix, dist_coeffs, allowed_ids=None):
         self.detector = Detector(families='tag36h11')
@@ -10,6 +11,7 @@ class AprilTagDetector:
         self.dist = dist_coeffs
         self.allowed_ids = allowed_ids
 
+    # Detect AprilTags in the given frame
     def detect(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         detections = self.detector.detect(gray)
@@ -19,6 +21,7 @@ class AprilTagDetector:
 
         return detections
 
+    # Estimate pose of detected AprilTags
     def estimate_pose(self, detection, tag_config):
         pose = None
         tags = {}
@@ -45,6 +48,7 @@ class AprilTagDetector:
                         [-tag_size/2, -tag_size/2, 0]
                     ])
 
+                    # Solve PnP to get rotation and translation vectors
                     success, rvec, tvec = cv2.solvePnP(
                         obj_points,
                         corners,
@@ -54,6 +58,7 @@ class AprilTagDetector:
                     )
 
                     if success:
+                        # Convert rotation vector to rotation matrix
                         R, _ =  cv2.Rodrigues(rvec)
                         pose = {
                             'rotation': R,
@@ -64,6 +69,8 @@ class AprilTagDetector:
 
                 except:
                     pass
+
+            # Store tag information
             tags[tag_id] = {
                 'id': det.tag_id,
                 'center': center,
@@ -74,8 +81,9 @@ class AprilTagDetector:
         return tags
 
 
+# Load AprilTag configuration from YAML file
 def load_apriltag_config(path):
-    """Load AprilTag configuration from YAML file."""
+
     with open(path, "r") as f:
         cfg = yaml.safe_load(f)
 

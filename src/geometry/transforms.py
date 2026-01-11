@@ -4,18 +4,13 @@ import math
 from typing import Optional, Dict, Tuple
 
 class CoordinateTransformer:
-    '''
-    Class to handle coordinate transformations between AprilTag and camera coordinate systems.
-    '''
     def __init__(self, camera_matrix, dist_coeffs):
-        '''
-        initialize the transformer with camera parameters
-        :param camera_matrix: 3x3 intrinsic camera matrix
-        :param dist_coeffs: distortion coefficients
-        '''
+
+        # Camera intrinsic parameters
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
 
+    # Transform hand pose to piano coordinate frame
     def hand_to_piano_transform(self,
                                 tags: Dict[int, Dict],
                                 piano_tag_id: int,
@@ -24,9 +19,11 @@ class CoordinateTransformer:
         if piano_tag_id not in tags or hand_tag_id not in tags:
             return None
 
+        # Get poses
         piano_tag = tags[piano_tag_id]
         hand_tag = tags[hand_tag_id]
 
+        # Compute relative pose of hand with respect to piano
         relative_3d = None
         if piano_tag['pose'] is not None and hand_tag['pose'] is not None:
             R_piano = piano_tag['pose']['rotation']
@@ -47,7 +44,7 @@ class CoordinateTransformer:
 
         return relative_3d
 
-
+    # Transform world landmark coordinates to piano frame
     def worldlandmark_to_piano_transform(
             self,
             t_lm_to_hand,
@@ -56,7 +53,7 @@ class CoordinateTransformer:
             hand_pose
     ):
 
-        p_L_H = np.array(
+        LM_pos_array = np.array(
             [LM_pos.x, LM_pos.y, LM_pos.z],
             dtype=np.float32
         )
@@ -65,12 +62,13 @@ class CoordinateTransformer:
         t_hand_to_piano = np.array(hand_pose['translation'])
 
         lm_pos_piano = (
-                R_hand_to_piano @ (R_lm_to_hand @ p_L_H + t_lm_to_hand)
+                R_hand_to_piano @ (R_lm_to_hand @ LM_pos_array + t_lm_to_hand)
                 + t_hand_to_piano
         )
 
         return lm_pos_piano
 
+    # Get 2D projected axes of AprilTag for visualization
     def get_apriltag_axes(self, tag_pose, axis_length: float = 0.05):
         axes_3d = np.array([
             [0, 0, 0],  # origin

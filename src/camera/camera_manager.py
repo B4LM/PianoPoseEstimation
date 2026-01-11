@@ -2,7 +2,7 @@ import yaml
 import numpy as np
 from datetime import datetime
 
-
+# CameraManager class to handle multiple camera configurations
 class CameraManager:
     def __init__(self, cfg_path = "camera.yaml"):
         self.cfg_path = cfg_path
@@ -10,8 +10,9 @@ class CameraManager:
         self.current_camera = None
         self.load_cfg()
 
+    # Load camera configuration from YAML file
     def load_cfg(self):
-        "load camera config from camera-yaml file"
+
         with open(self.cfg_path, "r") as f:
             self.cfg = yaml.safe_load(f)
 
@@ -25,15 +26,17 @@ class CameraManager:
 
         print(f"Loaded {len(self.cameras)} cameras. Current camera is {self.current_camera}")
 
+    # Save camera configuration to YAML file
     def save_cfg(self):
-        "save camera config to camera-yaml file"
+
         self.cfg["cameras"] = self.cameras
         with open(self.cfg_path, "w") as f:
             yaml.dump(self.cfg, f, default_flow_style=False)
         print(f"Saved camera config to {self.cfg_path}")
 
+    # Switch to a different camera
     def switch_camera(self, camera_name):
-        "switch camera from current camera to new one"
+
         if camera_name in self.cameras:
             self.current_camera = camera_name
             print(f"Switching to camera {camera_name}")
@@ -42,16 +45,19 @@ class CameraManager:
             print(f"Camera {camera_name} not found.")
             return False
 
+    # Get list of camera names
     def get_camera_names(self):
-        "get camera names"
+
         return list(self.cameras.keys())
 
+    # Get current camera configuration
     def get_current_camera_cfg(self):
-        "get current camera config"
+
         return self.cameras.get(self.current_camera, {})
 
+    # Get camera parameters (camera matrix and distortion coefficients)
     def get_camera_params(self, camera_name = None):
-        "get camera params"
+
         if camera_name is None:
             camera_name = self.current_camera
 
@@ -61,8 +67,9 @@ class CameraManager:
 
         return camera_matrix, dist_coeffs
 
+    # Update camera calibration data
     def update_calibration(self, camera_name, camera_matrix, dist_coeffs, mean_error):
-        "update camera calibration"
+
         if camera_name not in self.cameras:
             print(f"Camera {camera_name} not found.")
             return False

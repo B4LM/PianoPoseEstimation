@@ -1,8 +1,3 @@
-"""
-Entry point for PianoPoseEstimation.
-Usage: python run.py
-"""
-
 import sys
 import os
 

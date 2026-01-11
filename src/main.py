@@ -2,7 +2,6 @@
 import cv2
 import numpy as np
 from pathlib import Path
-import os
 from datetime import datetime
 import csv
 import time
@@ -207,7 +206,7 @@ def main():
                         # transform world-landmarks positions to piano-coordinates (through hand-apriltag)
                         fingertip_coords_piano = [transformer.worldlandmark_to_piano_transform(t_lm_to_hand, R_lm_to_hand,i,hand_pose) for i in fingertip_coords]
 
-
+                        # log fingertip positions
                         for finger_id, pt in zip(fingertip_indices, fingertip_coords_piano):
                             csv_writer.writerow([
                                 current_time,

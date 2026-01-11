@@ -2,12 +2,10 @@ import numpy as np
 import cv2
 import os
 
+# Camera Calibrator Class
 class CameraCalibrator:
     def __init__(self, pattern_size=(8,6),square_size= 0.025):
-        """
-        :param pattern_size: (columns, rows) of inner corners
-        :param square_size: size of chessboard squares in meters
-        """
+
         self.pattern_size = pattern_size
         self.square_size = square_size
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -20,27 +18,27 @@ class CameraCalibrator:
         self.imgpoints = []  #2D points in image plane
         self.calibration_images = []
 
+    # Find chessboard corners in images
     def find_chessboard_corners(self, image_paths, showcorners=False):
-        """
-        Find chessboard corners in image_paths
-        :param image_paths: path to calibration images
-        :param showcorners: Debug visualization of chessboard corners
-        :return: 2D image points of chessboard corners
-        """
+
         self.objpoints = []
         self.imgpoints = []
         self.calibration_images = []
 
+        # Iterate through images and find chessboard corners
         for i, fname in enumerate(image_paths):
             img = cv2.imread(fname)
             if img is None:
                 print(f"Could not read {fname}")
                 continue
 
+            # Convert to grayscale
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+            # Find the chessboard corners
             ret, corners = cv2.findChessboardCorners(gray, self.pattern_size, None)
 
+            # If found, add object points, image points
             if ret:
                 self.objpoints.append(self.objp)
 
@@ -49,6 +47,7 @@ class CameraCalibrator:
                 self.imgpoints.append(corners2)
                 self.calibration_images.append(fname)
 
+                # Draw and display the corners
                 if showcorners:
                     cv2.drawChessboardCorners(img, self.pattern_size, corners2, ret)
                     cv2.imshow("Chessboard Corners", img)
@@ -64,12 +63,8 @@ class CameraCalibrator:
 
         return len(self.imgpoints)
 
+    # Calibrate camera using found points
     def calibrate(self, image_size):
-        """
-        Calibrate Camera
-        :param image_size: image size, used in calibration
-        :return: camera matrix, distortion coefficients, mean error
-        """
 
         print(f"calibrating started!")
 
@@ -81,6 +76,7 @@ class CameraCalibrator:
         for i in range(len(self.objpoints)):
             imgpoints2, _ = cv2.projectPoints(self.objpoints[i], rvecs[i], tvecs[i], mtx, dist)
 
+            # Compute the error between the detected points and the projected points
             error = cv2.norm(self.imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
             mean_error += error
 
@@ -88,15 +84,10 @@ class CameraCalibrator:
 
         return mtx, dist, mean_error
 
+    # Save calibration images from camera
     def save_calibration_images(self, camera, num_images, save_dir):
-        """
-        Save camera calibration images
-        :param camera: camera_instance-> cap
-        :param num_images: number of calibration images
-        :param save_dir: directory to save calibration images
-        :return: saved images
-        """
 
+        # Create directory if it doesn't exist
         os.makedirs(save_dir, exist_ok=True)
 
         print(f"capturing {num_images} calibration images")
@@ -105,6 +96,7 @@ class CameraCalibrator:
         saved_images = []
         count = 0
 
+        # Capture images from camera
         while count < num_images:
             ret, frame = camera.read()
             if not ret:
@@ -137,10 +129,12 @@ class CameraCalibrator:
         cv2.destroyAllWindows()
         return saved_images
 
+# Hand Tag Landmark Calibration Class
 class hand_tag_landmark_calibration:
     def __init__(self, number_of_frames: int=30):
         self.number_of_frames = number_of_frames
 
+    # Calibrate hand using collected frames
     def calibrate_hand(self, hand_data, hand_pose,calibration_frames):
         cal_complete = False
         cal_inprogress = True
@@ -148,6 +142,7 @@ class hand_tag_landmark_calibration:
         t_HT = None
         R_HT = None
 
+        # Collect data for current frame
         frame_data = {
             'tag_translation': np.array(hand_pose['translation']),  # 3-vector
             'tag_rotation': np.array(hand_pose['rotation']),  # 3x3 matrix
@@ -167,24 +162,29 @@ class hand_tag_landmark_calibration:
                 hand_data['world_landmarks'][17].z
             ])
         }
+
+        # Append current frame data to calibration frames
         calibration_frames.append(frame_data)
 
+        # Check if enough frames have been collected for calibration
         if len(calibration_frames) >= self.number_of_frames:
             cal_complete = True
             cal_inprogress = False
             print("Calibration complete!")
 
+            # Compute averages
             t_TW_stack = np.stack([f['tag_translation'] for f in calibration_frames])
             wrist_stack = np.stack([f['wrist'] for f in calibration_frames])
             index_stack = np.stack([f['index'] for f in calibration_frames])
             pinky_stack = np.stack([f['pinky'] for f in calibration_frames])
 
-
+            # Compute average translations and rotations
             t_TW_avg = np.mean(t_TW_stack, axis=0)
             wrist_avg = np.mean(wrist_stack, axis=0)
             index_avg = np.mean(index_stack, axis=0)
             pinky_avg = np.mean(pinky_stack, axis=0)
 
+            # Get rotation from the middle frame
             middle_index = len(calibration_frames) // 2
             R_TW_avg = calibration_frames[middle_index]['tag_rotation']
 
@@ -194,6 +194,7 @@ class hand_tag_landmark_calibration:
             print(f"pinky_avg: {pinky_avg}")
             print(f"R_TW_avg: {R_TW_avg}")
 
+            # Compute hand-to-tag transformation
             X = index_avg - wrist_avg
             X /= np.linalg.norm(X)
 
@@ -203,6 +204,7 @@ class hand_tag_landmark_calibration:
             Z = np.cross(X, Y)
             Z /= np.linalg.norm(Z)
 
+            # Re-orthogonalize Y
             R_HW = np.column_stack((X, Y, Z))
             t_HT = R_HW.T @ (t_TW_avg - wrist_avg)
             R_HT = R_TW_avg.T @ R_HW
