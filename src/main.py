@@ -2,12 +2,16 @@
 import cv2
 import numpy as np
 from pathlib import Path
+import os
+from datetime import datetime
+import csv
+import time
 
 from src.camera import CameraCalibrator, hand_tag_landmark_calibration
 from src.camera import CameraManager
 from src.detection import AprilTagDetector, load_apriltag_config, MediaPipeHandDetection
 from src.geometry import CoordinateTransformer
-from src.visualization import draw_fingertip_coords,draw_April_tag_box, draw_calibration_status, draw_tag_axes, draw_Key_press_Event
+from src.visualization import draw_fingertip_coords,draw_April_tag_box, draw_calibration_status, draw_tag_axes, draw_Key_press_Event, draw_timestamp
 
 
 def main():
@@ -83,10 +87,43 @@ def main():
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, camera_cfg["image_width"])
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_cfg["image_height"])
     cap.set(cv2.CAP_PROP_FPS, camera_cfg["fps"])
-    
+
     if not cap.isOpened():
         raise RuntimeError("Camera could not be opened")
 
+    # save frames as video
+    recordings_dir = project_root / "recordings"
+    recordings_dir.mkdir(exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    video_path = recordings_dir / f"piano_pose_{timestamp}.mp4"
+
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fps = camera_cfg["fps"]
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    video_writer = cv2.VideoWriter(
+        str(video_path),
+        fourcc,
+        fps,
+        (frame_width, frame_height)
+    )
+
+    if not video_writer.isOpened():
+        raise RuntimeError("VideoWriter could not be opened")
+
+    #save fingertip pos-logs
+    log_path = recordings_dir / f"finger_coords_{timestamp}.csv"
+
+    log_file = open(log_path, "w", newline="")
+    csv_writer = csv.writer(log_file)
+    csv_writer.writerow(["time", "frame", "finger", "x", "y", "z"])
+
+    start_time = time.time()
+    frame_idx = 0
+
+    # get camera intrinsics
     yaml_camera_mtx = camera_cfg["camera_matrix"]
     camera_mtx = np.array(yaml_camera_mtx, dtype=np.float64)
     yaml_camera_dist = camera_cfg["dist_coeffs"]
@@ -116,6 +153,7 @@ def main():
     print("Starting piano pose estimation... Press ESC to quit.")
     while True:
         ret, frame = cap.read()
+        current_time = time.time() - start_time
         if not ret:
             break
 
@@ -169,6 +207,17 @@ def main():
                         # transform world-landmarks positions to piano-coordinates (through hand-apriltag)
                         fingertip_coords_piano = [transformer.worldlandmark_to_piano_transform(t_lm_to_hand, R_lm_to_hand,i,hand_pose) for i in fingertip_coords]
 
+
+                        for finger_id, pt in zip(fingertip_indices, fingertip_coords_piano):
+                            csv_writer.writerow([
+                                current_time,
+                                frame_idx,
+                                finger_id,
+                                float(pt[0]),
+                                float(pt[1]),
+                                float(pt[2])
+                            ])
+
                         # keypress event -> Fingertip z-pos < 0
                         for i, pt in enumerate(fingertip_coords_piano):
                             if pt[2] < 0:
@@ -185,6 +234,17 @@ def main():
             draw_calibration_status(frame, cal_complete)
             frame = hand_detector.draw_hand(frame, hand_data, draw_bbox=False)
 
+        # for logging
+        frame_idx += 1
+
+        # get timer position
+        timer_x = int(camera_cfg['image_width'] / 2)
+        timer_y = int(camera_cfg['image_height'] - 10)
+        draw_timestamp(frame, current_time, position=(timer_x, timer_y))
+
+        # save frame in video
+        video_writer.write(frame)
+
         # scale for window, if to big
         scale = 0.5
         frame_small = cv2.resize(frame, (0, 0), fx=scale, fy=scale)
@@ -193,7 +253,11 @@ def main():
         # stop program
         if cv2.waitKey(1) & 0xFF == 27:  # ESC
             break
-    
+
+    cap.release()
+    cv2.destroyAllWindows()
+    log_file.close()
+    video_writer.release()
     cap.release()
     cv2.destroyAllWindows()
 

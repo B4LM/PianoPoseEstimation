@@ -1,11 +1,18 @@
 # PianoPoseEstimation
-This projects focus is the analysis of  piano-playing. The goal is to use pose estimation of hand movement to detect key-pressing and analyse hand movement.
 
-## Coordinate System
+This project focuses on the 3D pose estimation of a hand using MediaPipe and AprilTags.  
 
-- Origin: AprilTag on piano (left of octave)
-- x-axis: along keys (left → right)
-- y-axis: depth
-- z-axis: upwards (normal to key plane)
+The detection can be started by running the `run.py` file. If any required packages are missing, a message will appear in the terminal with instructions to install them using the provided requirements file.  
 
-Key press is detected when fingertip z < 0
+If a new camera is used, it must be documented in the YAML file as a new entry. Since a new camera is not calibrated by default, it can be calibrated at startup using a chessboard pattern.  
+
+Fingertip position estimation will begin after the hand-mounted AprilTag has been calibrated. To perform the calibration, hold the hand flat and still within the camera view (both the hand and the tag must be detected) and press `s`. After a few seconds (30 frames), the calibration will be completed.  
+
+If other AprilTags or sizes are used, the corresponding configuration in the YAML file must be adapted.  
+
+## Global Coordinate System (stationary AprilTag)
+
+- **Origin:** Center of the stationary AprilTag  
+- **x-axis:** Left → Right (from the perspective of the user)  
+- **y-axis:** Depth → Away from the user  
+- **z-axis:** Upwards (normal to the AprilTag)

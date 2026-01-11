@@ -354,6 +354,34 @@ def draw_Key_press_Event(frame, pnt):
 
     cv2.circle(frame, pt, 30, (255, 0, 0), -1)
 
+import cv2
+from datetime import datetime
+
+def draw_timestamp(
+    frame,
+    session_time,
+    *,
+    position: tuple[int, int] =(20, 40),
+    font_scale: float =3,
+    color: tuple[int, int, int] =(0, 255, 0),
+    thickness: int =2,
+):
+
+    timer = f"Time: {session_time:7.3f} s"
+
+    cv2.putText(
+        frame,
+        timer,
+        position,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        font_scale,
+        color,
+        thickness,
+        cv2.LINE_AA
+    )
+
+    return frame
+
 
 
 

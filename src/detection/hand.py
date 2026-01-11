@@ -174,8 +174,8 @@ class MediaPipeHandDetection:
                 pos = tip_info['position'].astype(int)
                 color = self.FINGER_COLORS.get(finger_name, (255, 255, 255))
 
-                cv2.circle(output_image, tuple(pos), 10, color, -1)
-                cv2.circle(output_image, tuple(pos), 10, (255, 255, 255), 2)
+                cv2.circle(output_image, tuple(pos), 5, color, -1)
+                cv2.circle(output_image, tuple(pos), 5, (255, 255, 255), 2)
 
                 label = finger_name[0].upper()
                 cv2.putText(output_image, label,
